@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { collection, addDoc, getDocs, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { Assignment, Question } from '@/lib/types';
+import { Assignment } from '@/lib/types';
 
 // GET /api/assignments - List assignments
 export async function GET(request: NextRequest) {
@@ -26,17 +26,23 @@ export async function GET(request: NextRequest) {
     }
 
     const assignmentsSnapshot = await getDocs(assignmentsQuery);
+
     const assignments: Assignment[] = assignmentsSnapshot.docs.map(doc => {
       const data = doc.data();
+      const questions = Array.isArray(data.questions) ? data.questions : [];
+
       return {
         id: doc.id,
-        title: data.title,
-        classId: data.classId,
-        description: data.description,
-        dueDate: data.dueDate,
-        questions: data.questions || [],
+        title: data.title ?? '',
+        classId: data.classId ?? '',
+        description: data.description ?? '',
+        dueDate: data.dueDate ?? '',
+        questions,
         createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
         updatedAt: data.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+        // ✅ Ensure required fields are always present
+        totalQuestions: data.totalQuestions ?? questions.length,
+        createdBy: data.createdBy ?? 'unknown',
       };
     });
 
@@ -68,14 +74,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'At least one question is required' }, { status: 400 });
     }
 
-    // Validate each question
     for (const question of questions) {
       if (!question.id || !question.text || typeof question.maxMarks !== 'number') {
         return NextResponse.json({ error: 'Invalid question structure' }, { status: 400 });
       }
     }
 
-    // Create assignment document
+    // ✅ Include required fields when creating assignment
     const assignmentData = {
       title,
       classId,
@@ -84,6 +89,8 @@ export async function POST(request: NextRequest) {
       questions,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+      totalQuestions: questions.length,
+      createdBy: userId,
     };
 
     const docRef = await addDoc(collection(db, 'assignments'), assignmentData);
