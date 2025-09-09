@@ -216,12 +216,54 @@ export default function StudentDashboard() {
   };
 
   const handleViewDetails = async (assignmentId: string) => {
+    console.log('🚀 === handleViewDetails called ===');
+    console.log('🚀 Assignment ID:', assignmentId);
+    console.log('🚀 Router available:', !!router);
+    console.log('🚀 Current path:', window.location.pathname);
+    
     setActionLoading(`view-${assignmentId}`);
+    console.log('🚀 Loading state set to:', `view-${assignmentId}`);
+    
     try {
-      router.push(`/assignments/${assignmentId}`);
+      // Show immediate loading feedback
+      toast({
+        title: "Opening assignment details...",
+        description: `Loading ${assignmentId}`,
+        duration: 2000
+      });
+      
+      // Add a small delay to show the loading state
+      console.log('🚀 Waiting for delay...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('🚀 Delay complete, navigating...');
+      
+      const targetUrl = `/assignments/${assignmentId}`;
+      console.log('🚀 Target URL:', targetUrl);
+      
+      // Try router navigation first
+      try {
+        console.log('🚀 Attempting router.push...');
+        await router.push(targetUrl);
+        console.log('🚀 Router navigation successful');
+      } catch (routerError) {
+        console.warn('⚠️ Router navigation failed:', routerError);
+        console.log('🚀 Falling back to window.location.href...');
+        window.location.href = targetUrl;
+      }
+      
+    } catch (error) {
+      console.error('❌ Error in handleViewDetails:', error);
+      toast({
+        title: "Navigation Error",
+        description: `Failed to open assignment ${assignmentId}. Please try again.`,
+        variant: "destructive"
+      });
     } finally {
-      // Clear loading after a short delay to show the loading state
-      setTimeout(() => setActionLoading(null), 500);
+      console.log('🚀 Clearing loading state in 1 second...');
+      setTimeout(() => {
+        setActionLoading(null);
+        console.log('🚀 Loading state cleared');
+      }, 1000);
     }
   };
 
@@ -406,6 +448,35 @@ export default function StudentDashboard() {
             </Card>
           </div>
 
+          {/* Debug Navigation Test - Remove in production */}
+          <Card className="bg-red-50 border-red-200">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-red-700">Debug Mode:</span>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => {
+                    console.log('🧪 Testing direct navigation...');
+                    router.push('/assignments/demo1');
+                  }}
+                >
+                  Test Direct Navigation
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => {
+                    console.log('🧪 Testing window.location...');
+                    window.location.href = '/assignments/demo1';
+                  }}
+                >
+                  Test Window Location
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Search and Filter */}
           <Card className="bg-white/70 backdrop-blur-sm border-white/20 shadow-xl">
             <CardContent className="pt-6">
@@ -552,13 +623,30 @@ export default function StudentDashboard() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handleViewDetails(assignment.id)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('🔵 Button clicked!');
+                              console.log('🔵 Assignment ID:', assignment.id);
+                              console.log('🔵 Assignment Title:', assignment.title);
+                              console.log('🔵 Is Demo:', assignment.id.startsWith('demo'));
+                              console.log('🔵 Current loading state:', actionLoading);
+                              
+                              // Add visual feedback
+                              e.target.style.backgroundColor = '#e5e7eb';
+                              setTimeout(() => {
+                                if (e.target) e.target.style.backgroundColor = '';
+                              }, 200);
+                              
+                              handleViewDetails(assignment.id);
+                            }}
                             disabled={actionLoading === `view-${assignment.id}`}
-                            className="min-w-[100px] transition-all"
+                            className="min-w-[100px] transition-all hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 active:bg-gray-100"
                           >
                             {actionLoading === `view-${assignment.id}` ? (
                               <div className="flex items-center space-x-2">
                                 <LoadingSpinner className="h-4 w-4" />
+                                <span className="text-sm">Loading...</span>
                               </div>
                             ) : (
                               <div className="flex items-center space-x-2">
