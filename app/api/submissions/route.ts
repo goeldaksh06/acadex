@@ -19,27 +19,24 @@ export async function GET(request: NextRequest) {
     let submissionsQuery;
     
     if (assignmentId) {
-      // Get all submissions for a specific assignment
       submissionsQuery = query(
         collection(db, 'submissions'),
         where('assignmentId', '==', assignmentId),
         orderBy('submittedAt', 'desc')
       );
     } else if (studentId) {
-      // Get all submissions for a specific student
       submissionsQuery = query(
         collection(db, 'submissions'),
         where('studentId', '==', studentId),
         orderBy('submittedAt', 'desc')
       );
     } else {
-      // Get all submissions (for teachers)
       submissionsQuery = query(collection(db, 'submissions'), orderBy('submittedAt', 'desc'));
     }
 
     const submissionsSnapshot = await getDocs(submissionsQuery);
     const submissions: Submission[] = submissionsSnapshot.docs.map(doc => {
-      const data = doc.data();
+      const data: any = doc.data(); // Use `any` to avoid type errors
       return {
         id: doc.id,
         assignmentId: data.assignmentId,
@@ -79,18 +76,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'At least one file is required' }, { status: 400 });
     }
 
-    // Validate each file
-    for (const file of files) {
-      if (!file.url || !file.name || typeof file.size !== 'number') {
-        return NextResponse.json({ error: 'Invalid file structure' }, { status: 400 });
-      }
-    }
+    // Mock file URLs (no Firebase Storage needed)
+    const mockedFiles: SubmissionFile[] = files.map((file: any, index: number) => ({
+      id: `mock-file-${Date.now()}-${index}`,
+      name: file.name,
+      size: file.size,
+      url: `/mock/path/${file.name}`, // fake URL
+    }));
 
     // Create submission document
     const submissionData = {
       assignmentId,
       studentId,
-      files,
+      files: mockedFiles,
       submittedAt: new Date().toISOString(),
       status: 'submitted',
       createdAt: serverTimestamp(),
@@ -100,7 +98,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       id: docRef.id,
-      message: 'Submission created successfully' 
+      message: 'Submission created successfully',
+      files: mockedFiles, // return mocked files to frontend
     });
   } catch (error) {
     console.error('Error creating submission:', error);

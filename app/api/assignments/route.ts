@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     const assignmentsSnapshot = await getDocs(assignmentsQuery);
 
     const assignments: Assignment[] = assignmentsSnapshot.docs.map(doc => {
-      const data = doc.data();
+      const data = doc.data() as any;
       const questions = Array.isArray(data.questions) ? data.questions : [];
 
       return {

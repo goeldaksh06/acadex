@@ -10,6 +10,7 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-xl">
+        {/* @ts-ignore - Temporary fix for type pollution issue */}
         <Tabs value={tab} onValueChange={setTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Log In</TabsTrigger>

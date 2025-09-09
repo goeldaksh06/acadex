@@ -1,12 +1,20 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import type { ChangeEvent } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Upload, FileText, X, CheckCircle } from 'lucide-react';
-import { SubmissionFile } from '@/lib/types';
+
+export interface SubmissionFile {
+  id?: string;
+  name: string;
+  size: number;
+  url: string;
+}
 
 interface SubmissionUploaderProps {
   assignmentId: string;
@@ -31,28 +39,26 @@ export default function SubmissionUploader({
   const [uploadedFiles, setUploadedFiles] = useState<SubmissionFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(event.target.files || []);
-    
-    // Validate file count
+  const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles: File[] = Array.from(event.target.files ?? []);
+
     if (files.length + selectedFiles.length > maxFiles) {
       onUploadError(`Maximum ${maxFiles} files allowed`);
       return;
     }
 
-    // Validate file types and sizes
     const validFiles: File[] = [];
     for (const file of selectedFiles) {
-      if (file.type !== 'application/pdf') {
+      if (!file.type?.includes('pdf')) {
         onUploadError('Only PDF files are allowed');
         continue;
       }
-      
+
       if (file.size > maxFileSize * 1024 * 1024) {
         onUploadError(`File "${file.name}" is too large. Maximum size is ${maxFileSize}MB`);
         continue;
       }
-      
+
       validFiles.push(file);
     }
 
@@ -74,17 +80,15 @@ export default function SubmissionUploader({
 
     try {
       const uploadedFiles: SubmissionFile[] = [];
-      
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        
-        // Create FormData for file upload
+
         const formData = new FormData();
         formData.append('file', file);
         formData.append('assignmentId', assignmentId);
         formData.append('studentId', studentId);
 
-        // Upload file to API
         const response = await fetch('/api/upload', {
           method: 'POST',
           body: formData,
@@ -95,21 +99,17 @@ export default function SubmissionUploader({
           throw new Error(errorData.error || 'Upload failed');
         }
 
-        const result = await response.json();
+        const result: { file: SubmissionFile } = await response.json();
         uploadedFiles.push(result.file);
-        
-        // Update progress
+
         setUploadProgress(((i + 1) / files.length) * 100);
       }
 
       setUploadedFiles(uploadedFiles);
       onUploadComplete(uploadedFiles);
-      
-      // Reset form
       setFiles([]);
       setUploadProgress(0);
-      
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Upload error:', error);
       onUploadError(error instanceof Error ? error.message : 'Upload failed');
     } finally {
@@ -133,9 +133,8 @@ export default function SubmissionUploader({
           <span>Upload Submission</span>
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
-        {/* Upload Area */}
         <div
           className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center hover:border-muted-foreground/50 transition-colors cursor-pointer"
           onClick={() => fileInputRef.current?.click()}
@@ -158,7 +157,6 @@ export default function SubmissionUploader({
           className="hidden"
         />
 
-        {/* Selected Files */}
         {files.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium">Selected Files:</h4>
@@ -184,7 +182,6 @@ export default function SubmissionUploader({
           </div>
         )}
 
-        {/* Upload Progress */}
         {uploading && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
@@ -195,17 +192,15 @@ export default function SubmissionUploader({
           </div>
         )}
 
-        {/* Upload Success */}
         {uploadedFiles.length > 0 && (
           <Alert>
             <CheckCircle className="h-4 w-4" />
             <AlertDescription>
-              Successfully uploaded {uploadedFiles.length} file(s)
+              {`Successfully uploaded ${uploadedFiles.length} file(s)`}
             </AlertDescription>
           </Alert>
         )}
 
-        {/* Upload Button */}
         {files.length > 0 && !uploading && (
           <Button onClick={uploadFiles} className="w-full">
             <Upload className="h-4 w-4 mr-2" />
