@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Calendar, FileText, Upload, Clock, CheckCircle, Search, Filter, TrendingUp, AlertCircle, Eye } from 'lucide-react';
+import { Calendar, FileText, Upload, Clock, CheckCircle, Search, Filter, TrendingUp, AlertCircle, Eye, BookOpen, Target, Award } from 'lucide-react';
+import { NoAssignmentsIllustration, StudentLearningIllustration, AssignmentTypeIcon, LoadingSpinner } from '@/components/ui/illustrations';
 import { Assignment, Submission, SubmissionFile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { listenToAssignments, listenToSubmissions, createSubmission } from '@/lib/firebase/firestore';
@@ -297,56 +298,108 @@ export default function StudentDashboard() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen pb-20">
-        <Header title="Student Dashboard" />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pb-20">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,_rgba(59,130,246,0.15)_1px,_transparent_0)] [background-size:24px_24px] pointer-events-none" />
+        <div className="relative z-10">
+          <Header title="Student Dashboard" />
 
         <main className="container mx-auto p-6 space-y-6">
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">
-                      Total Assignments
-                      {isShowingDemoData && <span className="text-xs text-muted-foreground"> (Demo)</span>}
+          {/* Welcome Section with Illustration */}
+          <div className="mb-8">
+            <Card className="bg-gradient-to-r from-blue-500 to-purple-600 border-0 text-white overflow-hidden relative">
+              <CardContent className="pt-8 pb-8">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold mb-2">Welcome back, Student! 📚</h2>
+                    <p className="text-blue-100 mb-4">
+                      Ready to conquer your assignments? Let's see what's on your learning journey today.
                     </p>
-                    <p className="text-2xl font-bold">{assignments.length}</p>
+                    <div className="flex items-center space-x-4 text-sm">
+                      <div className="flex items-center space-x-2">
+                        <BookOpen className="h-5 w-5" />
+                        <span>{assignments.length} Assignments</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Target className="h-5 w-5" />
+                        <span>{assignments.length - submissions.filter(sub => sub.status === 'submitted' || sub.status === 'graded').length} Pending</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Award className="h-5 w-5" />
+                        <span>{submissions.filter(sub => sub.status === 'graded').length} Completed</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="hidden md:block">
+                    <StudentLearningIllustration className="w-40 h-40" />
+                  </div>
+                </div>
+                {/* Decorative elements */}
+                <div className="absolute top-4 right-4 opacity-20">
+                  <div className="w-32 h-32 rounded-full bg-white/10" />
+                </div>
+                <div className="absolute -bottom-4 -left-4 opacity-10">
+                  <div className="w-24 h-24 rounded-full bg-white/20" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-shadow">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-700">
+                      Total Assignments
+                      {isShowingDemoData && <span className="text-xs text-blue-500"> (Demo)</span>}
+                    </p>
+                    <p className="text-3xl font-bold text-blue-900">{assignments.length}</p>
+                    <p className="text-xs text-blue-600 mt-1">Active learning</p>
+                  </div>
+                  <div className="bg-blue-500 p-3 rounded-full">
+                    <FileText className="h-6 w-6 text-white" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium">
+                    <p className="text-sm font-medium text-green-700">
                       Submitted
-                      {isShowingDemoData && <span className="text-xs text-muted-foreground"> (Demo)</span>}
+                      {isShowingDemoData && <span className="text-xs text-green-500"> (Demo)</span>}
                     </p>
-                    <p className="text-2xl font-bold">
+                    <p className="text-3xl font-bold text-green-900">
                       {isShowingDemoData ? 1 : submissions.filter(sub => sub.status === 'submitted' || sub.status === 'graded').length}
                     </p>
+                    <p className="text-xs text-green-600 mt-1">Great progress!</p>
+                  </div>
+                  <div className="bg-green-500 p-3 rounded-full">
+                    <CheckCircle className="h-6 w-6 text-white" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4 text-orange-500" />
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium">
+                    <p className="text-sm font-medium text-orange-700">
                       Pending
-                      {isShowingDemoData && <span className="text-xs text-muted-foreground"> (Demo)</span>}
+                      {isShowingDemoData && <span className="text-xs text-orange-500"> (Demo)</span>}
                     </p>
-                    <p className="text-2xl font-bold">
+                    <p className="text-3xl font-bold text-orange-900">
                       {isShowingDemoData ? 2 : assignments.length - submissions.filter(sub => sub.status === 'submitted' || sub.status === 'graded').length}
                     </p>
+                    <p className="text-xs text-orange-600 mt-1">Let's tackle them!</p>
+                  </div>
+                  <div className="bg-orange-500 p-3 rounded-full">
+                    <Clock className="h-6 w-6 text-white" />
                   </div>
                 </div>
               </CardContent>
@@ -354,28 +407,37 @@ export default function StudentDashboard() {
           </div>
 
           {/* Search and Filter */}
-          <Card>
+          <Card className="bg-white/70 backdrop-blur-sm border-white/20 shadow-xl">
             <CardContent className="pt-6">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                   <Input
-                    placeholder="Search assignments..."
+                    placeholder="Search assignments by title or description..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-12 h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl bg-white/90"
                   />
                 </div>
                 <div className="flex gap-2">
-                  {['all', 'pending', 'submitted', 'overdue'].map((status) => (
+                  {[
+                    { key: 'all', label: 'All', color: 'blue' },
+                    { key: 'pending', label: 'Pending', color: 'orange' },
+                    { key: 'submitted', label: 'Submitted', color: 'green' },
+                    { key: 'overdue', label: 'Overdue', color: 'red' }
+                  ].map((filter) => (
                     <Button
-                      key={status}
-                      variant={filterStatus === status ? 'default' : 'outline'}
+                      key={filter.key}
+                      variant={filterStatus === filter.key ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setFilterStatus(status)}
-                      className="capitalize"
+                      onClick={() => setFilterStatus(filter.key)}
+                      className={`capitalize px-4 py-2 rounded-lg transition-all ${
+                        filterStatus === filter.key 
+                          ? `bg-${filter.color}-500 text-white hover:bg-${filter.color}-600` 
+                          : `border-${filter.color}-200 text-${filter.color}-600 hover:bg-${filter.color}-50`
+                      }`}
                     >
-                      {status === 'all' ? 'All' : status}
+                      {filter.label}
                     </Button>
                   ))}
                 </div>
@@ -403,8 +465,8 @@ export default function StudentDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {filteredAssignments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <div className="text-center py-12">
+                    <NoAssignmentsIllustration className="w-32 h-32 mx-auto mb-6" />
                     {searchQuery || filterStatus !== 'all' ? (
                       <div>
                         <p className="text-muted-foreground">No assignments match your search</p>
@@ -439,11 +501,12 @@ export default function StudentDashboard() {
                   const isDemoAssignment = isShowingDemoData && assignment.id.startsWith('demo');
                   
                   return (
-                    <div key={assignment.id} className="group p-4 border rounded-lg hover:shadow-md transition-all duration-200 bg-card">
+                    <div key={assignment.id} className="group p-6 border rounded-xl hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm border-white/40">
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h3 className="font-semibold text-lg truncate">{assignment.title}</h3>
+                          <div className="flex items-center space-x-3 mb-3">
+                            <AssignmentTypeIcon type={assignment.title} className="w-10 h-10 flex-shrink-0" />
+                            <h3 className="font-bold text-xl truncate text-gray-900">{assignment.title}</h3>
                             {isDemoAssignment && (
                               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                                 Demo
@@ -495,7 +558,7 @@ export default function StudentDashboard() {
                           >
                             {actionLoading === `view-${assignment.id}` ? (
                               <div className="flex items-center space-x-2">
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                                <LoadingSpinner className="h-4 w-4" />
                               </div>
                             ) : (
                               <div className="flex items-center space-x-2">
@@ -574,9 +637,9 @@ export default function StudentDashboard() {
           </Card>
         </main>
 
-        <Navigation currentPath="/dashboard/student" />
+          <Navigation currentPath="/dashboard/student" />
 
-        {/* Submission Modal */}
+          {/* Submission Modal */}
         <Dialog open={submissionModalOpen} onOpenChange={setSubmissionModalOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
@@ -598,6 +661,7 @@ export default function StudentDashboard() {
             )}
           </DialogContent>
         </Dialog>
+        </div>
       </div>
     </ProtectedRoute>
   );

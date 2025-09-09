@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Calendar, FileText, Users, CheckCircle, Clock, Plus, Search, Eye, Download, GraduationCap, TrendingUp, AlertCircle } from 'lucide-react';
+import { Calendar, FileText, Users, CheckCircle, Clock, Plus, Search, Eye, Download, GraduationCap, TrendingUp, AlertCircle, BookOpen, Target, Award } from 'lucide-react';
+import { NoAssignmentsIllustration, TeacherDashboardIllustration, AssignmentTypeIcon, LoadingSpinner } from '@/components/ui/illustrations';
 import { Assignment, Submission } from '@/lib/types';
 import { listenToTeacherAssignments, listenToAllSubmissions } from '@/lib/firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
@@ -234,10 +235,53 @@ export default function TeacherDashboard() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen pb-20">
-        <Header title="Teacher Dashboard" />
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 pb-20">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,_rgba(34,197,94,0.15)_1px,_transparent_0)] [background-size:24px_24px] pointer-events-none" />
+        <div className="relative z-10">
+          <Header title="Teacher Dashboard" />
 
         <main className="container mx-auto p-6 space-y-6">
+          {/* Welcome Section with Illustration */}
+          <div className="mb-8">
+            <Card className="bg-gradient-to-r from-green-600 to-blue-600 border-0 text-white overflow-hidden relative">
+              <CardContent className="pt-8 pb-8">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold mb-2">Welcome back, Educator! 👨‍🏫</h2>
+                    <p className="text-green-100 mb-4">
+                      Ready to inspire and guide your students? Let's check on your classes and assignments.
+                    </p>
+                    <div className="flex items-center space-x-4 text-sm">
+                      <div className="flex items-center space-x-2">
+                        <BookOpen className="h-5 w-5" />
+                        <span>{assignments.length} Assignments</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Users className="h-5 w-5" />
+                        <span>{submissions.length} Submissions</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Award className="h-5 w-5" />
+                        <span>{submissions.filter(sub => sub.status === 'graded').length} Graded</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="hidden md:block">
+                    <TeacherDashboardIllustration className="w-40 h-40" />
+                  </div>
+                </div>
+                {/* Decorative elements */}
+                <div className="absolute top-4 right-4 opacity-20">
+                  <div className="w-32 h-32 rounded-full bg-white/10" />
+                </div>
+                <div className="absolute -bottom-4 -left-4 opacity-10">
+                  <div className="w-24 h-24 rounded-full bg-white/20" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Quick Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
@@ -359,8 +403,8 @@ export default function TeacherDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {filteredAssignments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <div className="text-center py-12">
+                    <NoAssignmentsIllustration className="w-32 h-32 mx-auto mb-6" />
                     {searchQuery ? (
                       <div>
                         <p className="text-muted-foreground">No assignments match your search</p>
@@ -388,11 +432,12 @@ export default function TeacherDashboard() {
                     const isDemoAssignment = isShowingDemoData && assignment.id.startsWith('demo_teacher_');
                     
                     return (
-                      <div key={assignment.id} className="group p-6 border rounded-lg hover:shadow-md transition-all duration-200 bg-card">
+                      <div key={assignment.id} className="group p-6 border rounded-xl hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm border-white/40">
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <h3 className="font-semibold text-lg truncate">{assignment.title}</h3>
+                            <div className="flex items-center space-x-3 mb-3">
+                              <AssignmentTypeIcon type={assignment.title} className="w-10 h-10 flex-shrink-0" />
+                              <h3 className="font-bold text-xl truncate text-gray-900">{assignment.title}</h3>
                               {isDemoAssignment && (
                                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                                   Demo
@@ -456,7 +501,7 @@ export default function TeacherDashboard() {
                                 className="min-w-[100px]"
                               >
                                 {actionLoading === `view-${assignment.id}` ? (
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                                  <LoadingSpinner className="h-4 w-4" />
                                 ) : (
                                   <>
                                     <Eye className="h-4 w-4 mr-2" />
@@ -538,7 +583,8 @@ export default function TeacherDashboard() {
           </Card>
         </main>
 
-        <Navigation currentPath="/dashboard/teacher" />
+          <Navigation currentPath="/dashboard/teacher" />
+        </div>
       </div>
     </ProtectedRoute>
   );
