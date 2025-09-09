@@ -8,7 +8,8 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, FileText, Users, CheckCircle, Clock, Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Calendar, FileText, Users, CheckCircle, Clock, Plus, Search, Eye, Download, GraduationCap, TrendingUp, AlertCircle } from 'lucide-react';
 import { Assignment, Submission } from '@/lib/types';
 import { listenToTeacherAssignments, listenToAllSubmissions } from '@/lib/firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
@@ -58,6 +59,8 @@ export default function TeacherDashboard() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [isShowingDemoData, setIsShowingDemoData] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Real-time Firestore listeners
   useEffect(() => {
@@ -138,8 +141,32 @@ export default function TeacherDashboard() {
     return { totalSubmissions, gradedSubmissions, pendingGrading };
   };
 
-  const handleViewAssignmentDetails = (assignmentId: string) => {
-    router.push(`/assignments/${assignmentId}`);
+  const filteredAssignments = assignments.filter(assignment => 
+    assignment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    assignment.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const formatDueDate = (dueDate: string) => {
+    const date = new Date(dueDate);
+    const now = new Date();
+    const diffMs = date.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return 'Overdue';
+    if (diffDays === 0) return 'Due today';
+    if (diffDays === 1) return 'Due tomorrow';
+    if (diffDays <= 7) return `Due in ${diffDays} days`;
+    
+    return date.toLocaleDateString();
+  };
+
+  const handleViewAssignmentDetails = async (assignmentId: string) => {
+    setActionLoading(`view-${assignmentId}`);
+    try {
+      router.push(`/assignments/${assignmentId}`);
+    } finally {
+      setTimeout(() => setActionLoading(null), 500);
+    }
   };
 
   const handleGradeSubmissions = (assignmentId: string) => {
@@ -213,64 +240,99 @@ export default function TeacherDashboard() {
         <main className="container mx-auto p-6 space-y-6">
           {/* Quick Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <CardContent className="pt-6">
-                <div className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4 text-primary" />
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium">
+                    <p className="text-sm font-medium text-blue-700">
                       Total Assignments
-                      {isShowingDemoData && <span className="text-xs text-muted-foreground"> (Demo)</span>}
+                      {isShowingDemoData && <span className="text-xs text-blue-500"> (Demo)</span>}
                     </p>
-                    <p className="text-2xl font-bold">{assignments.length}</p>
+                    <p className="text-3xl font-bold text-blue-900">{assignments.length}</p>
+                  </div>
+                  <FileText className="h-8 w-8 text-blue-600" />
+                </div>
+                <div className="mt-2">
+                  <div className="flex items-center text-xs text-blue-600">
+                    <TrendingUp className="h-3 w-3 mr-1" />
+                    <span>Active courses</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
               <CardContent className="pt-6">
-                <div className="flex items-center space-x-2">
-                  <Users className="h-4 w-4 text-blue-500" />
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium">Total Submissions</p>
-                    <p className="text-2xl font-bold">{submissions.length}</p>
+                    <p className="text-sm font-medium text-purple-700">Total Submissions</p>
+                    <p className="text-3xl font-bold text-purple-900">{submissions.length}</p>
+                  </div>
+                  <Users className="h-8 w-8 text-purple-600" />
+                </div>
+                <div className="mt-2">
+                  <div className="flex items-center text-xs text-purple-600">
+                    <span>From students</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
               <CardContent className="pt-6">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium">Graded</p>
-                    <p className="text-2xl font-bold">
+                    <p className="text-sm font-medium text-green-700">Graded</p>
+                    <p className="text-3xl font-bold text-green-900">
                       {submissions.filter(sub => sub.status === 'graded').length}
                     </p>
                   </div>
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                </div>
+                <div className="mt-2">
+                  <div className="flex items-center text-xs text-green-600">
+                    <span>{submissions.length > 0 ? Math.round((submissions.filter(sub => sub.status === 'graded').length / submissions.length) * 100) : 0}% completed</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
               <CardContent className="pt-6">
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4 text-orange-500" />
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium">Pending Review</p>
-                    <p className="text-2xl font-bold">
+                    <p className="text-sm font-medium text-orange-700">Pending Review</p>
+                    <p className="text-3xl font-bold text-orange-900">
                       {submissions.filter(sub => sub.status === 'submitted').length}
                     </p>
+                  </div>
+                  <Clock className="h-8 w-8 text-orange-600" />
+                </div>
+                <div className="mt-2">
+                  <div className="flex items-center text-xs text-orange-600">
+                    {submissions.filter(sub => sub.status === 'submitted').length > 0 && (
+                      <>
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        <span>Needs attention</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Create Assignment Button */}
-          <div className="flex justify-end">
+          {/* Search and Actions */}
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search assignments..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
             <Button className="btn-hero" onClick={() => router.push('/assignments/create')}>
               <Plus className="h-4 w-4 mr-2" />
               Create Assignment
@@ -281,7 +343,7 @@ export default function TeacherDashboard() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>Assignments Overview</span>
+                <span>Assignments Overview ({filteredAssignments.length})</span>
                 {isShowingDemoData && (
                   <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
                     Demo Data
@@ -296,49 +358,128 @@ export default function TeacherDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {assignments.map((assignment) => {
-                  const stats = getAssignmentStats(assignment.id);
-                  
-                  return (
-                    <div key={assignment.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <h3 className="font-semibold mb-2">{assignment.title}</h3>
-                        <p className="text-sm text-muted-foreground mb-2">{assignment.description}</p>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="h-4 w-4" />
-                            <span>Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                {filteredAssignments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    {searchQuery ? (
+                      <div>
+                        <p className="text-muted-foreground">No assignments match your search</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3"
+                          onClick={() => setSearchQuery('')}
+                        >
+                          Clear Search
+                        </Button>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-muted-foreground">No assignments created yet</p>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Create your first assignment to get started.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  filteredAssignments.map((assignment) => {
+                    const stats = getAssignmentStats(assignment.id);
+                    const isDemoAssignment = isShowingDemoData && assignment.id.startsWith('demo_teacher_');
+                    
+                    return (
+                      <div key={assignment.id} className="group p-6 border rounded-lg hover:shadow-md transition-all duration-200 bg-card">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <h3 className="font-semibold text-lg truncate">{assignment.title}</h3>
+                              {isDemoAssignment && (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                  Demo
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{assignment.description}</p>
+                            
+                            <div className="flex items-center space-x-6 text-sm text-muted-foreground mb-4">
+                              <div className="flex items-center space-x-1">
+                                <Calendar className="h-4 w-4" />
+                                <span className="font-medium">{formatDueDate(assignment.dueDate)}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <FileText className="h-4 w-4" />
+                                <span>{assignment.questions.length} questions</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Users className="h-4 w-4" />
+                                <span>{stats.totalSubmissions} submissions</span>
+                              </div>
+                            </div>
+                            
+                            {/* Progress bar for grading */}
+                            {stats.totalSubmissions > 0 && (
+                              <div className="mb-2">
+                                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                                  <span>Grading Progress</span>
+                                  <span>{Math.round((stats.gradedSubmissions / stats.totalSubmissions) * 100)}%</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-green-500 h-2 rounded-full transition-all"
+                                    style={{ width: `${(stats.gradedSubmissions / stats.totalSubmissions) * 100}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center space-x-1">
-                            <FileText className="h-4 w-4" />
-                            <span>{assignment.questions.length} questions</span>
+                          
+                          {/* Action Buttons */}
+                          <div className="flex flex-col space-y-2 ml-6">
+                            <div className="text-right mb-2">
+                              <div className="flex items-center space-x-4 text-sm">
+                                <div className="text-center">
+                                  <p className="font-semibold text-green-600">{stats.gradedSubmissions}</p>
+                                  <p className="text-xs text-muted-foreground">Graded</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="font-semibold text-orange-600">{stats.pendingGrading}</p>
+                                  <p className="text-xs text-muted-foreground">Pending</p>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleViewAssignmentDetails(assignment.id)}
+                                disabled={actionLoading === `view-${assignment.id}`}
+                                className="min-w-[100px]"
+                              >
+                                {actionLoading === `view-${assignment.id}` ? (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                                ) : (
+                                  <>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View
+                                  </>
+                                )}
+                              </Button>
+                              <Button 
+                                size="sm"
+                                onClick={() => handleGradeSubmissions(assignment.id)}
+                                variant={stats.pendingGrading > 0 ? 'default' : 'outline'}
+                                className="min-w-[120px]"
+                              >
+                                <GraduationCap className="h-4 w-4 mr-2" />
+                                Grade ({stats.pendingGrading})
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end space-y-2">
-                        <div className="text-right">
-                          <p className="text-sm text-muted-foreground">Submissions</p>
-                          <p className="font-semibold">{stats.totalSubmissions}</p>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleViewAssignmentDetails(assignment.id)}
-                          >
-                            View Details
-                          </Button>
-                          <Button 
-                            size="sm"
-                            onClick={() => handleGradeSubmissions(assignment.id)}
-                          >
-                            Grade Submissions
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </CardContent>
           </Card>

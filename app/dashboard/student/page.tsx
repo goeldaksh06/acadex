@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Calendar, FileText, Upload, Clock, CheckCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Calendar, FileText, Upload, Clock, CheckCircle, Search, Filter, TrendingUp, AlertCircle, Eye } from 'lucide-react';
 import { Assignment, Submission, SubmissionFile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { listenToAssignments, listenToSubmissions, createSubmission } from '@/lib/firebase/firestore';
@@ -75,6 +76,9 @@ export default function StudentDashboard() {
   const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [isShowingDemoData, setIsShowingDemoData] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -181,8 +185,43 @@ export default function StudentDashboard() {
     return new Date(dueDate) < new Date();
   };
 
-  const handleViewDetails = (assignmentId: string) => {
-    router.push(`/assignments/${assignmentId}`);
+  const filteredAssignments = assignments.filter(assignment => {
+    const matchesSearch = assignment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         assignment.description.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (filterStatus === 'all') return matchesSearch;
+    
+    const status = getSubmissionStatus(assignment.id);
+    if (filterStatus === 'pending') return matchesSearch && (status === 'not_submitted' || status === 'late_submitted');
+    if (filterStatus === 'submitted') return matchesSearch && (status === 'submitted' || status === 'graded');
+    if (filterStatus === 'overdue') return matchesSearch && isOverdue(assignment.dueDate) && status !== 'submitted' && status !== 'graded';
+    
+    return matchesSearch;
+  });
+
+  const formatTimeRemaining = (dueDate: string) => {
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diffMs = due.getTime() - now.getTime();
+    
+    if (diffMs < 0) return 'Overdue';
+    
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    if (days > 0) return `${days} day${days > 1 ? 's' : ''} left`;
+    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} left`;
+    return 'Due soon';
+  };
+
+  const handleViewDetails = async (assignmentId: string) => {
+    setActionLoading(`view-${assignmentId}`);
+    try {
+      router.push(`/assignments/${assignmentId}`);
+    } finally {
+      // Clear loading after a short delay to show the loading state
+      setTimeout(() => setActionLoading(null), 500);
+    }
   };
 
   const handleSubmitClick = (assignment: Assignment) => {
@@ -314,11 +353,41 @@ export default function StudentDashboard() {
             </Card>
           </div>
 
+          {/* Search and Filter */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search assignments..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  {['all', 'pending', 'submitted', 'overdue'].map((status) => (
+                    <Button
+                      key={status}
+                      variant={filterStatus === status ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setFilterStatus(status)}
+                      className="capitalize"
+                    >
+                      {status === 'all' ? 'All' : status}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Current Assignments */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>Current Assignments</span>
+                <span>Current Assignments ({filteredAssignments.length})</span>
                 {isShowingDemoData && (
                   <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
                     Demo Data
@@ -333,75 +402,130 @@ export default function StudentDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {assignments.length === 0 ? (
+                {filteredAssignments.length === 0 ? (
                   <div className="text-center py-8">
                     <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No assignments yet</p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Check back later for new assignments from your teachers.
-                    </p>
+                    {searchQuery || filterStatus !== 'all' ? (
+                      <div>
+                        <p className="text-muted-foreground">No assignments match your search</p>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Try adjusting your search or filter criteria.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3"
+                          onClick={() => {
+                            setSearchQuery('');
+                            setFilterStatus('all');
+                          }}
+                        >
+                          Clear Filters
+                        </Button>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-muted-foreground">No assignments yet</p>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Check back later for new assignments from your teachers.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  assignments.map((assignment) => {
+                  filteredAssignments.map((assignment) => {
                   const status = getSubmissionStatus(assignment.id);
                   const overdue = isOverdue(assignment.dueDate);
                   const isDemoAssignment = isShowingDemoData && assignment.id.startsWith('demo');
                   
                   return (
-                    <div key={assignment.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <h3 className="font-semibold">{assignment.title}</h3>
+                    <div key={assignment.id} className="group p-4 border rounded-lg hover:shadow-md transition-all duration-200 bg-card">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h3 className="font-semibold text-lg truncate">{assignment.title}</h3>
+                            {isDemoAssignment && (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                Demo
+                              </Badge>
+                            )}
+                            {getStatusBadge(status)}
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{assignment.description}</p>
+                          
+                          <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="h-4 w-4" />
+                              <span>Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <FileText className="h-4 w-4" />
+                              <span>{assignment.questions.length} questions</span>
+                            </div>
+                          </div>
+                          
+                          {/* Time remaining indicator */}
+                          <div className="flex items-center space-x-2">
+                            {overdue && status !== 'submitted' && status !== 'graded' ? (
+                              <div className="flex items-center space-x-1 text-red-600">
+                                <AlertCircle className="h-4 w-4" />
+                                <span className="text-sm font-medium">Overdue</span>
+                              </div>
+                            ) : status === 'submitted' || status === 'graded' ? (
+                              <div className="flex items-center space-x-1 text-green-600">
+                                <CheckCircle className="h-4 w-4" />
+                                <span className="text-sm font-medium">Completed</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-1 text-blue-600">
+                                <Clock className="h-4 w-4" />
+                                <span className="text-sm font-medium">{formatTimeRemaining(assignment.dueDate)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {/* Action Buttons */}
+                        <div className="flex flex-col space-y-2 ml-4">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewDetails(assignment.id)}
+                            disabled={actionLoading === `view-${assignment.id}`}
+                            className="min-w-[100px] transition-all"
+                          >
+                            {actionLoading === `view-${assignment.id}` ? (
+                              <div className="flex items-center space-x-2">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <Eye className="h-4 w-4" />
+                                <span>View</span>
+                              </div>
+                            )}
+                          </Button>
+                          {(status === 'not_submitted' || status === 'late_submitted') && !isDemoAssignment && (
+                            <Button 
+                              size="sm"
+                              onClick={() => handleSubmitClick(assignment)}
+                              className="min-w-[100px] bg-primary hover:bg-primary/90"
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              {status === 'late_submitted' ? 'Resubmit' : 'Submit'}
+                            </Button>
+                          )}
                           {isDemoAssignment && (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                              Demo
-                            </Badge>
-                          )}
-                          {getStatusBadge(status)}
-                          {overdue && status !== 'submitted' && status !== 'graded' && (
-                            <Badge variant="destructive">Overdue</Badge>
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              disabled
+                              className="opacity-50 min-w-[100px]"
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Demo Only
+                            </Button>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">{assignment.description}</p>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="h-4 w-4" />
-                            <span>Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <FileText className="h-4 w-4" />
-                            <span>{assignment.questions.length} questions</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleViewDetails(assignment.id)}
-                        >
-                          View Details
-                        </Button>
-                        {(status === 'not_submitted' || status === 'late_submitted') && !isDemoAssignment && (
-                          <Button 
-                            size="sm"
-                            onClick={() => handleSubmitClick(assignment)}
-                          >
-                            <Upload className="h-4 w-4 mr-2" />
-                            {status === 'late_submitted' ? 'Resubmit' : 'Submit'}
-                          </Button>
-                        )}
-                        {isDemoAssignment && (
-                          <Button 
-                            size="sm"
-                            variant="outline"
-                            disabled
-                            className="opacity-50"
-                          >
-                            <Upload className="h-4 w-4 mr-2" />
-                            Demo Only
-                          </Button>
-                        )}
                       </div>
                     </div>
                   );
