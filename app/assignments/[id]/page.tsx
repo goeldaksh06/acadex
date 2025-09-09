@@ -14,7 +14,7 @@ import { ArrowLeft, Calendar, FileText, Clock, CheckCircle } from 'lucide-react'
 import { Assignment, Submission, SubmissionFile } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { createSubmission } from '@/lib/firebase/firestore';
+import { createSubmission, getAssignment, getSubmission } from '@/lib/firebase/firestore';
 
 export default function AssignmentDetailPage() {
   const params = useParams();
@@ -28,162 +28,102 @@ export default function AssignmentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
 
-  // Mock data for demo - in real app, fetch from API
+  // Load assignment and submission data
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      // Mock assignment data based on ID
-      const getMockAssignment = (id: string): Assignment => {
-        const assignments = {
-          // Student demo assignments
-          'demo1': {
-            id: 'demo1',
-            title: 'Math Assignment 1',
-            description: 'Solve problems 1–10 from Chapter 3',
-            classId: 'math101',
-            dueDate: '2025-09-10T23:59:59.000Z',
-            questions: [
-              { id: 'q1', text: 'Solve the quadratic equation: x² + 5x + 6 = 0', maxMarks: 10 },
-              { id: 'q2', text: 'Find the derivative of f(x) = 3x³ - 2x² + 5x - 1', maxMarks: 15 },
-              { id: 'q3', text: 'Calculate the area under the curve y = x² from x = 0 to x = 3', maxMarks: 20 }
-            ],
-            totalQuestions: 3,
-            createdBy: 'demo_teacher',
-            createdAt: '2024-01-01T00:00:00.000Z',
-            updatedAt: '2024-01-01T00:00:00.000Z'
-          },
-          'demo2': {
-            id: 'demo2',
-            title: 'Physics Lab Report',
-            description: 'Experiment on Newton\'s Laws',
-            classId: 'physics101',
-            dueDate: '2025-09-12T23:59:59.000Z',
-            questions: [
-              { id: 'q1', text: 'Explain Newton\'s First Law with examples from your experiment', maxMarks: 15 },
-              { id: 'q2', text: 'Calculate the acceleration of the object in your experiment', maxMarks: 20 },
-              { id: 'q3', text: 'Discuss sources of error in your measurements', maxMarks: 10 }
-            ],
-            totalQuestions: 3,
-            createdBy: 'demo_teacher',
-            createdAt: '2024-01-01T00:00:00.000Z',
-            updatedAt: '2024-01-01T00:00:00.000Z'
-          },
-          'demo3': {
-            id: 'demo3',
-            title: 'Computer Science Project',
-            description: 'Build a simple calculator in Python',
-            classId: 'cs101',
-            dueDate: '2025-09-15T23:59:59.000Z',
-            questions: [
-              { id: 'q1', text: 'Implement basic arithmetic operations (+, -, *, /)', maxMarks: 25 },
-              { id: 'q2', text: 'Add error handling for division by zero', maxMarks: 15 },
-              { id: 'q3', text: 'Create a user-friendly interface with input validation', maxMarks: 20 }
-            ],
-            totalQuestions: 3,
-            createdBy: 'demo_teacher',
-            createdAt: '2024-01-01T00:00:00.000Z',
-            updatedAt: '2024-01-01T00:00:00.000Z'
-          },
-          // Teacher demo assignments
-          'demo_teacher_1': {
-            id: 'demo_teacher_1',
-            title: 'Advanced Calculus Problem Set',
-            description: 'Solve the following calculus problems involving derivatives and integrals',
-            classId: 'math201',
-            dueDate: '2025-09-15T23:59:59.000Z',
-            questions: [
-              { id: 'q1', text: 'Find the derivative of f(x) = x³ + 2x² - 5x + 1', maxMarks: 15 },
-              { id: 'q2', text: 'Calculate the definite integral from 0 to 2 of (3x² + 2x) dx', maxMarks: 20 },
-              { id: 'q3', text: 'Solve the differential equation dy/dx = 2xy', maxMarks: 25 }
-            ],
-            totalQuestions: 3,
-            createdBy: 'demo_teacher',
-            createdAt: '2024-01-01T00:00:00.000Z',
-            updatedAt: '2024-01-01T00:00:00.000Z'
-          },
-          'demo_teacher_2': {
-            id: 'demo_teacher_2',
-            title: 'Physics Lab Report - Electromagnetic Fields',
-            description: 'Analyze the electromagnetic field patterns and write a comprehensive lab report',
-            classId: 'physics301',
-            dueDate: '2025-09-20T23:59:59.000Z',
-            questions: [
-              { id: 'q1', text: 'Calculate the electric field strength at point P', maxMarks: 20 },
-              { id: 'q2', text: 'Analyze the magnetic field lines and their properties', maxMarks: 25 },
-              { id: 'q3', text: 'Discuss the relationship between electric and magnetic fields', maxMarks: 30 }
-            ],
-            totalQuestions: 3,
-            createdBy: 'demo_teacher',
-            createdAt: '2024-01-01T00:00:00.000Z',
-            updatedAt: '2024-01-01T00:00:00.000Z'
-          },
-          // Legacy assignments for backward compatibility
-          '1': {
-            id: '1',
-            title: 'Math Problem Set 1',
-            classId: 'class_1',
-            description: 'Solve the following mathematical problems. Show all your work and explain your reasoning.',
-            dueDate: '2024-02-01T23:59:59.000Z',
-            questions: [
-              { id: 'q1', text: 'Solve for x: 2x + 5 = 13', maxMarks: 10 },
-              { id: 'q2', text: 'Find the derivative of x² + 3x', maxMarks: 15 },
-              { id: 'q3', text: 'Calculate the area under the curve y = x² from x = 0 to x = 2', maxMarks: 20 }
-            ],
-            totalQuestions: 3,
-            createdBy: 'demo_teacher',
-            createdAt: '2024-01-15T10:30:00.000Z',
-            updatedAt: '2024-01-15T10:30:00.000Z'
-          },
-          '2': {
-            id: '2',
-            title: 'Physics Lab Report',
-            classId: 'class_1',
-            description: 'Write a comprehensive lab report on the pendulum experiment. Include data analysis, calculations, and conclusions.',
-            dueDate: '2024-02-05T23:59:59.000Z',
-            questions: [
-              { id: 'q1', text: 'Calculate the period of oscillation for different pendulum lengths', maxMarks: 20 },
-              { id: 'q2', text: 'Analyze the relationship between length and period using graphs', maxMarks: 25 },
-              { id: 'q3', text: 'Compare experimental results with theoretical predictions', maxMarks: 15 }
-            ],
-            totalQuestions: 3,
-            createdBy: 'demo_teacher',
-            createdAt: '2024-01-20T10:30:00.000Z',
-            updatedAt: '2024-01-20T10:30:00.000Z'
-          }
-        };
-        
-        return assignments[id as keyof typeof assignments] || {
-          id: id,
-          title: 'Assignment Not Found',
-          classId: 'unknown',
-          description: 'This assignment could not be found.',
-          dueDate: new Date().toISOString(),
-          questions: [],
-          totalQuestions: 0,
-          createdBy: 'unknown',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-      };
-
-      const mockAssignment = getMockAssignment(assignmentId);
-      
-      // Mock submission data (if exists)
-      const mockSubmission: Submission | null = assignmentId === '1' ? {
-        id: 'sub_1',
-        assignmentId: '1',
-        studentId: 'student_1',
-        files: [{ url: 'https://example.com/file1.pdf', name: 'math_homework.pdf', size: 2048576 }],
-        submittedAt: '2024-01-30T14:30:00.000Z',
-        status: 'graded',
-        createdAt: '2024-01-30T14:30:00.000Z'
-      } : null;
-
-      setAssignment(mockAssignment);
-      setSubmission(mockSubmission);
+    if (!user) {
       setLoading(false);
-    }, 1000);
-  }, [assignmentId]);
+      return;
+    }
+
+    const loadData = async () => {
+      setLoading(true);
+      
+      try {
+        // First try to load real assignment data
+        const realAssignment = await getAssignment(assignmentId);
+        
+        if (realAssignment) {
+          setAssignment(realAssignment);
+          
+          // Load submission data if assignment exists
+          const existingSubmission = await getSubmission(assignmentId, user.uid);
+          setSubmission(existingSubmission);
+        } else {
+          // Fallback to demo data for demo assignments
+          const demoAssignments: Record<string, Assignment> = {
+            'demo1': {
+              id: 'demo1',
+              title: 'Math Assignment 1',
+              description: 'Solve problems 1–10 from Chapter 3',
+              classId: 'math101',
+              dueDate: '2025-09-10T23:59:59.000Z',
+              questions: [
+                { id: 'q1', text: 'Solve the quadratic equation: x² + 5x + 6 = 0', maxMarks: 10 },
+                { id: 'q2', text: 'Find the derivative of f(x) = 3x³ - 2x² + 5x - 1', maxMarks: 15 },
+                { id: 'q3', text: 'Calculate the area under the curve y = x² from x = 0 to x = 3', maxMarks: 20 }
+              ],
+              totalQuestions: 3,
+              createdBy: 'demo_teacher',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z'
+            },
+            'demo2': {
+              id: 'demo2',
+              title: 'Physics Lab Report',
+              description: 'Experiment on Newton\'s Laws',
+              classId: 'physics101',
+              dueDate: '2025-09-12T23:59:59.000Z',
+              questions: [
+                { id: 'q1', text: 'Explain Newton\'s First Law with examples from your experiment', maxMarks: 15 },
+                { id: 'q2', text: 'Calculate the acceleration of the object in your experiment', maxMarks: 20 },
+                { id: 'q3', text: 'Discuss sources of error in your measurements', maxMarks: 10 }
+              ],
+              totalQuestions: 3,
+              createdBy: 'demo_teacher',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z'
+            },
+            'demo3': {
+              id: 'demo3',
+              title: 'Computer Science Project',
+              description: 'Build a simple calculator in Python',
+              classId: 'cs101',
+              dueDate: '2025-09-15T23:59:59.000Z',
+              questions: [
+                { id: 'q1', text: 'Implement basic arithmetic operations (+, -, *, /)', maxMarks: 25 },
+                { id: 'q2', text: 'Add error handling for division by zero', maxMarks: 15 },
+                { id: 'q3', text: 'Create a user-friendly interface with input validation', maxMarks: 20 }
+              ],
+              totalQuestions: 3,
+              createdBy: 'demo_teacher',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z'
+            }
+          };
+          
+          const demoAssignment = demoAssignments[assignmentId];
+          if (demoAssignment) {
+            setAssignment(demoAssignment);
+            setSubmission(null); // No submissions for demo assignments
+          } else {
+            // Assignment not found
+            setAssignment(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading assignment data:', error);
+        toast({
+          title: "Error loading assignment",
+          description: "Failed to load assignment details. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [assignmentId, user, toast]);
 
   const handleUploadComplete = async (files: SubmissionFile[]) => {
     if (!user) {

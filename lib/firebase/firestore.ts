@@ -309,10 +309,16 @@ export const listenToSubmissions = (
 
 // Create submission
 export const createSubmission = async (submissionData: Omit<Submission, 'id' | 'createdAt'>): Promise<string> => {
-  const docRef = await addDoc(collection(db, SUBMISSIONS_COLLECTION), {
+  // Convert ISO string dates to Firestore Timestamps
+  const docData = {
     ...submissionData,
+    submittedAt: typeof submissionData.submittedAt === 'string' 
+      ? Timestamp.fromDate(new Date(submissionData.submittedAt))
+      : submissionData.submittedAt,
     createdAt: Timestamp.now()
-  });
+  };
+  
+  const docRef = await addDoc(collection(db, SUBMISSIONS_COLLECTION), docData);
   
   return docRef.id;
 };
@@ -321,12 +327,17 @@ export const createSubmission = async (submissionData: Omit<Submission, 'id' | '
 export const createAssignment = async (assignmentData: Omit<Assignment, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
   const now = Timestamp.now();
   
+  // Convert dueDate to Timestamp if it's a string
+  const dueDate = typeof assignmentData.dueDate === 'string' 
+    ? Timestamp.fromDate(new Date(assignmentData.dueDate))
+    : assignmentData.dueDate;
+  
   // Ensure all required fields are present with proper types
   const assignmentDoc = {
     title: assignmentData.title,
     description: assignmentData.description,
     classId: assignmentData.classId,
-    dueDate: assignmentData.dueDate,
+    dueDate: dueDate,
     questions: assignmentData.questions,
     createdBy: assignmentData.createdBy,
     totalQuestions: assignmentData.questions.length, // Add totalQuestions field
@@ -337,6 +348,59 @@ export const createAssignment = async (assignmentData: Omit<Assignment, 'id' | '
   const docRef = await addDoc(collection(db, ASSIGNMENTS_COLLECTION), assignmentDoc);
   
   return docRef.id;
+};
+
+// Get a specific assignment by ID
+export const getAssignment = async (assignmentId: string): Promise<Assignment | null> => {
+  try {
+    const assignmentRef = doc(db, ASSIGNMENTS_COLLECTION, assignmentId);
+    const assignmentSnap = await getDoc(assignmentRef);
+    
+    if (assignmentSnap.exists()) {
+      const data = assignmentSnap.data();
+      return {
+        ...data,
+        id: assignmentSnap.id,
+        dueDate: data.dueDate ? timestampToISO(data.dueDate) : new Date().toISOString(),
+        createdAt: data.createdAt ? timestampToISO(data.createdAt) : new Date().toISOString(),
+        updatedAt: data.updatedAt ? timestampToISO(data.updatedAt) : new Date().toISOString()
+      } as Assignment;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting assignment:', error);
+    return null;
+  }
+};
+
+// Get submission by assignment and student ID
+export const getSubmission = async (assignmentId: string, studentId: string): Promise<Submission | null> => {
+  try {
+    const q = query(
+      collection(db, SUBMISSIONS_COLLECTION),
+      where('assignmentId', '==', assignmentId),
+      where('studentId', '==', studentId),
+      limit(1)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      const doc = querySnapshot.docs[0];
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+        submittedAt: data.submittedAt ? timestampToISO(data.submittedAt) : new Date().toISOString(),
+        createdAt: data.createdAt ? timestampToISO(data.createdAt) : new Date().toISOString()
+      } as Submission;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting submission:', error);
+    return null;
+  }
 };
 
 // Listen to assignments for a specific teacher

@@ -42,27 +42,59 @@ export default function SubmissionUploader({
   const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFiles: File[] = Array.from(event.target.files ?? []);
 
+    if (selectedFiles.length === 0) {
+      return;
+    }
+
     if (files.length + selectedFiles.length > maxFiles) {
-      onUploadError(`Maximum ${maxFiles} files allowed`);
+      onUploadError(`Maximum ${maxFiles} files allowed. You have selected ${selectedFiles.length} files, but can only add ${maxFiles - files.length} more.`);
       return;
     }
 
     const validFiles: File[] = [];
+    const errors: string[] = [];
+    
     for (const file of selectedFiles) {
-      if (!file.type?.includes('pdf')) {
-        onUploadError('Only PDF files are allowed');
+      // More robust PDF type checking
+      const isValidPDF = file.type === 'application/pdf' || 
+                        file.type === 'application/x-pdf' || 
+                        file.name.toLowerCase().endsWith('.pdf');
+      
+      if (!isValidPDF) {
+        errors.push(`"${file.name}" is not a PDF file`);
         continue;
       }
 
       if (file.size > maxFileSize * 1024 * 1024) {
-        onUploadError(`File "${file.name}" is too large. Maximum size is ${maxFileSize}MB`);
+        errors.push(`"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is ${maxFileSize}MB`);
+        continue;
+      }
+
+      // Check for duplicate files
+      const isDuplicate = files.some(existingFile => 
+        existingFile.name === file.name && existingFile.size === file.size
+      );
+      
+      if (isDuplicate) {
+        errors.push(`"${file.name}" is already selected`);
         continue;
       }
 
       validFiles.push(file);
     }
 
-    setFiles(prev => [...prev, ...validFiles]);
+    if (errors.length > 0) {
+      onUploadError(`Some files could not be added:\n${errors.join('\n')}`);
+    }
+
+    if (validFiles.length > 0) {
+      setFiles(prev => [...prev, ...validFiles]);
+    }
+
+    // Clear the input value to allow re-selecting the same files after fixing issues
+    if (event.target) {
+      event.target.value = '';
+    }
   };
 
   const removeFile = (index: number) => {
@@ -75,40 +107,77 @@ export default function SubmissionUploader({
       return;
     }
 
+    if (!assignmentId || !studentId) {
+      onUploadError('Missing assignment or student information');
+      return;
+    }
+
     setUploading(true);
     setUploadProgress(0);
 
     try {
       const uploadedFiles: SubmissionFile[] = [];
+      const failedFiles: string[] = [];
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('assignmentId', assignmentId);
+          formData.append('studentId', studentId);
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('assignmentId', assignmentId);
-        formData.append('studentId', studentId);
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
 
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
+          if (!response.ok) {
+            let errorMessage = 'Upload failed';
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.error || errorMessage;
+            } catch {
+              // If we can't parse the error response, use the status text
+              errorMessage = response.statusText || errorMessage;
+            }
+            throw new Error(errorMessage);
+          }
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Upload failed');
+          const result: { file: SubmissionFile; success: boolean } = await response.json();
+          if (result.success && result.file) {
+            uploadedFiles.push(result.file);
+          } else {
+            throw new Error('Invalid response from server');
+          }
+        } catch (error) {
+          console.error(`Error uploading file ${file.name}:`, error);
+          failedFiles.push(`${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-
-        const result: { file: SubmissionFile } = await response.json();
-        uploadedFiles.push(result.file);
 
         setUploadProgress(((i + 1) / files.length) * 100);
       }
 
-      setUploadedFiles(uploadedFiles);
-      onUploadComplete(uploadedFiles);
-      setFiles([]);
-      setUploadProgress(0);
+      if (uploadedFiles.length > 0) {
+        setUploadedFiles(uploadedFiles);
+        onUploadComplete(uploadedFiles);
+        
+        // Only clear files that were successfully uploaded
+        setFiles(prev => prev.filter(file => 
+          !uploadedFiles.some(uploaded => uploaded.name === file.name)
+        ));
+      }
+
+      if (failedFiles.length > 0) {
+        onUploadError(`Some files failed to upload:\n${failedFiles.join('\n')}`);
+      }
+
+      // Reset progress after a delay to show completion
+      setTimeout(() => {
+        setUploadProgress(0);
+      }, 2000);
+      
     } catch (error: unknown) {
       console.error('Upload error:', error);
       onUploadError(error instanceof Error ? error.message : 'Upload failed');

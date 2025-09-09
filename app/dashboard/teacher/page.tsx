@@ -367,35 +367,41 @@ export default function TeacherDashboard() {
           </div>
 
           {/* Search and Actions */}
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search assignments..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button className="btn-hero" onClick={() => router.push('/assignments/create')}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Assignment
-            </Button>
-          </div>
+          <Card className="bg-white/70 backdrop-blur-sm border-white/20 shadow-xl">
+            <CardContent className="pt-6">
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <Input
+                    placeholder="Search assignments by title or description..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-12 h-12 border-2 border-gray-200 focus:border-green-500 rounded-xl bg-white/90"
+                  />
+                </div>
+                <Button className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition-all duration-200 hover:shadow-xl" onClick={() => router.push('/assignments/create')}>
+                  <Plus className="h-5 w-5 mr-2" />
+                  Create New Assignment
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Assignments Overview */}
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm border-white/30 shadow-xl">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>Assignments Overview ({filteredAssignments.length})</span>
+                <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                  Assignments Overview ({filteredAssignments.length})
+                </span>
                 {isShowingDemoData && (
-                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                  <Badge variant="outline" className="bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-700 border-yellow-300 px-3 py-1">
                     Demo Data
                   </Badge>
                 )}
               </CardTitle>
               {isShowingDemoData && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-600 bg-gradient-to-r from-blue-50 to-purple-50 p-3 rounded-lg border border-blue-200">
                   Showing demo assignments for UI showcasing. Real assignments will appear here when created.
                 </p>
               )}
@@ -530,9 +536,11 @@ export default function TeacherDashboard() {
           </Card>
 
           {/* Recent Submissions */}
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm border-white/30 shadow-xl">
             <CardHeader>
-              <CardTitle>Recent Submissions</CardTitle>
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Recent Submissions
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

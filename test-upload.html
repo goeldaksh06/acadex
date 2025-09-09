@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <h1>ACADEX Upload Test</h1>
+    <p>This page tests the file upload functionality for the student dashboard.</p>
+    
+    <div class="upload-area">
+        <input type="file" id="fileInput" accept=".pdf" multiple>
+        <p>Select PDF files to upload</p>
+    </div>
+    
+    <button onclick="testUpload()">Test Upload</button>
+    
+    <div id="result"></div>
+
+    <script>
+        async function testUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const resultDiv = document.getElementById('result');
+            
+            if (fileInput.files.length === 0) {
+                resultDiv.innerHTML = '<div class="error">Please select at least one file</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div>Uploading...</div>';
+            
+            try {
+                for (let i = 0; i < fileInput.files.length; i++) {
+                    const file = fileInput.files[i];
+                    
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('assignmentId', 'test-assignment');
+                    formData.append('studentId', 'test-student');
+                    
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        resultDiv.innerHTML += `<div class="success">✅ ${file.name} uploaded successfully!</div>`;
+                        console.log('Upload result:', result);
+                    } else {
+                        resultDiv.innerHTML += `<div class="error">❌ ${file.name}: ${result.error}</div>`;
+                        console.error('Upload error:', result);
+                    }
+                }
+            } catch (error) {
+                resultDiv.innerHTML += `<div class="error">❌ Upload failed: ${error.message}</div>`;
+                console.error('Upload error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

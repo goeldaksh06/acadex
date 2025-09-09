@@ -599,34 +599,56 @@ export default function StudentDashboard() {
           </Card>
 
           {/* Recent Submissions */}
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm border-white/30 shadow-xl">
             <CardHeader>
-              <CardTitle>Recent Submissions</CardTitle>
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Recent Submissions
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {submissions.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">No submissions yet</p>
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gradient-to-r from-purple-100 to-pink-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                      <FileText className="h-8 w-8 text-purple-600" />
+                    </div>
+                    <p className="text-gray-600 font-medium">No submissions yet</p>
+                    <p className="text-sm text-gray-500 mt-1">Your submitted assignments will appear here</p>
+                  </div>
                 ) : (
                   submissions.map((submission) => {
                     const assignment = assignments.find(a => a.id === submission.assignmentId);
                     return (
-                      <div key={submission.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <h3 className="font-semibold">{assignment?.title || 'Unknown Assignment'}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Submitted: {new Date(submission.submittedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {getStatusBadge(submission.status)}
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleViewDetails(submission.assignmentId)}
-                          >
-                            View
-                          </Button>
+                      <div key={submission.id} className="group p-4 border rounded-xl hover:shadow-lg transition-all duration-200 bg-gradient-to-r from-white to-blue-50/30 border-blue-100">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 flex items-center space-x-3">
+                            <AssignmentTypeIcon type={assignment?.title || ''} className="w-10 h-10 flex-shrink-0" />
+                            <div>
+                              <h3 className="font-bold text-gray-900">{assignment?.title || 'Unknown Assignment'}</h3>
+                              <p className="text-sm text-gray-600">
+                                Submitted: {new Date(submission.submittedAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            {getStatusBadge(submission.status)}
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleViewDetails(submission.assignmentId)}
+                              disabled={actionLoading === `view-submission-${submission.id}`}
+                              className="bg-white hover:bg-blue-50 border-blue-200 text-blue-700 hover:text-blue-800 font-medium px-4 py-2 rounded-lg transition-all duration-200 hover:shadow-md"
+                            >
+                              {actionLoading === `view-submission-${submission.id}` ? (
+                                <LoadingSpinner className="h-4 w-4" />
+                              ) : (
+                                <>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View Details
+                                </>
+                              )}
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     );
