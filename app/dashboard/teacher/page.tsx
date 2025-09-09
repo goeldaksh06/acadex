@@ -368,6 +368,13 @@ export default function TeacherDashboard() {
                           <Button 
                             variant="outline" 
                             size="sm"
+                            onClick={() => handleViewAssignmentDetails(submission.assignmentId)}
+                          >
+                            View
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
                             onClick={() => handleDownloadSubmission(submission)}
                           >
                             Download
