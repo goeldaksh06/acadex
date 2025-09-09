@@ -12,11 +12,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Calendar, FileText, Clock, CheckCircle } from 'lucide-react';
 import { Assignment, Submission, SubmissionFile } from '@/lib/types';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { createSubmission } from '@/lib/firebase/firestore';
 
 export default function AssignmentDetailPage() {
   const params = useParams();
   const router = useRouter();
   const assignmentId = params.id as string;
+  const { user } = useAuth();
+  const { toast } = useToast();
   
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [submission, setSubmission] = useState<Submission | null>(null);
@@ -41,6 +46,8 @@ export default function AssignmentDetailPage() {
               { id: 'q2', text: 'Find the derivative of x² + 3x', maxMarks: 15 },
               { id: 'q3', text: 'Calculate the area under the curve y = x² from x = 0 to x = 2', maxMarks: 20 }
             ],
+            totalQuestions: 3,
+            createdBy: 'demo_teacher',
             createdAt: '2024-01-15T10:30:00.000Z',
             updatedAt: '2024-01-15T10:30:00.000Z'
           },
@@ -55,6 +62,8 @@ export default function AssignmentDetailPage() {
               { id: 'q2', text: 'Analyze the relationship between length and period using graphs', maxMarks: 25 },
               { id: 'q3', text: 'Compare experimental results with theoretical predictions', maxMarks: 15 }
             ],
+            totalQuestions: 3,
+            createdBy: 'demo_teacher',
             createdAt: '2024-01-20T10:30:00.000Z',
             updatedAt: '2024-01-20T10:30:00.000Z'
           }
@@ -67,6 +76,8 @@ export default function AssignmentDetailPage() {
           description: 'This assignment could not be found.',
           dueDate: new Date().toISOString(),
           questions: [],
+          totalQuestions: 0,
+          createdBy: 'unknown',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -92,35 +103,34 @@ export default function AssignmentDetailPage() {
   }, [assignmentId]);
 
   const handleUploadComplete = async (files: SubmissionFile[]) => {
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to submit assignments.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setUploading(true);
     
     try {
-      // Create submission via API
-      const response = await fetch('/api/submissions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          assignmentId,
-          studentId: 'student_1', // In real app, get from auth context
-          files,
-          userId: 'student_1',
-          userRole: 'student'
-        }),
-      });
+      // Create submission directly in Firestore
+      const submissionData = {
+        assignmentId,
+        studentId: user.uid,
+        files,
+        submittedAt: new Date().toISOString(),
+        status: 'submitted' as const
+      };
 
-      if (!response.ok) {
-        throw new Error('Failed to create submission');
-      }
-
-      const result = await response.json();
+      await createSubmission(submissionData);
       
       // Update local state
       const newSubmission: Submission = {
-        id: result.id,
+        id: 'temp-id', // Will be updated by Firestore
         assignmentId,
-        studentId: 'student_1',
+        studentId: user.uid,
         files,
         submittedAt: new Date().toISOString(),
         status: 'submitted',
@@ -129,16 +139,29 @@ export default function AssignmentDetailPage() {
       
       setSubmission(newSubmission);
       
+      toast({
+        title: "Assignment submitted successfully!",
+        description: `Your submission for "${assignment?.title}" has been uploaded.`,
+      });
+      
     } catch (error) {
       console.error('Error creating submission:', error);
-      alert('Failed to submit assignment. Please try again.');
+      toast({
+        title: "Submission failed",
+        description: "Failed to submit assignment. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setUploading(false);
     }
   };
 
   const handleUploadError = (error: string) => {
-    alert(`Upload error: ${error}`);
+    toast({
+      title: "Upload error",
+      description: error,
+      variant: "destructive"
+    });
   };
 
   const getSubmissionStatus = () => {
@@ -305,12 +328,14 @@ export default function AssignmentDetailPage() {
                 <CardTitle>Submit Your Work</CardTitle>
               </CardHeader>
               <CardContent>
-                <SubmissionUploader
-                  assignmentId={assignmentId}
-                  studentId="student_1" // In real app, get from auth context
-                  onUploadComplete={handleUploadComplete}
-                  onUploadError={handleUploadError}
-                />
+                {user && (
+                  <SubmissionUploader
+                    assignmentId={assignmentId}
+                    studentId={user.uid}
+                    onUploadComplete={handleUploadComplete}
+                    onUploadError={handleUploadError}
+                  />
+                )}
               </CardContent>
             </Card>
           )}
