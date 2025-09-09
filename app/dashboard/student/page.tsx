@@ -433,7 +433,11 @@ export default function StudentDashboard() {
                         </div>
                         <div className="flex items-center space-x-2">
                           {getStatusBadge(submission.status)}
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewDetails(submission.assignmentId)}
+                          >
                             View
                           </Button>
                         </div>

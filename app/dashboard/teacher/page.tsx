@@ -138,6 +138,47 @@ export default function TeacherDashboard() {
     return { totalSubmissions, gradedSubmissions, pendingGrading };
   };
 
+  const handleViewAssignmentDetails = (assignmentId: string) => {
+    router.push(`/assignments/${assignmentId}`);
+  };
+
+  const handleGradeSubmissions = (assignmentId: string) => {
+    // For demo assignments, show a message
+    if (isShowingDemoData && assignmentId.startsWith('demo_teacher_')) {
+      toast({
+        title: "Demo Assignment",
+        description: "This is a demo assignment. Grading functionality is not available for demo data.",
+        variant: "default"
+      });
+      return;
+    }
+    
+    // Navigate to grading page (you can implement this later)
+    toast({
+      title: "Grading Interface",
+      description: "Grading interface will be implemented soon.",
+      variant: "default"
+    });
+  };
+
+  const handleDownloadSubmission = (submission: Submission) => {
+    // For demo, just show a message
+    toast({
+      title: "Download Submission",
+      description: `Downloading submission files for ${submission.id}`,
+      variant: "default"
+    });
+  };
+
+  const handleGradeSubmission = (submission: Submission) => {
+    // For demo, just show a message
+    toast({
+      title: "Grade Submission",
+      description: `Opening grading interface for submission ${submission.id}`,
+      variant: "default"
+    });
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'graded':
@@ -280,10 +321,17 @@ export default function TeacherDashboard() {
                           <p className="font-semibold">{stats.totalSubmissions}</p>
                         </div>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewAssignmentDetails(assignment.id)}
+                          >
                             View Details
                           </Button>
-                          <Button size="sm">
+                          <Button 
+                            size="sm"
+                            onClick={() => handleGradeSubmissions(assignment.id)}
+                          >
                             Grade Submissions
                           </Button>
                         </div>
@@ -317,11 +365,18 @@ export default function TeacherDashboard() {
                         </div>
                         <div className="flex items-center space-x-2">
                           {getStatusBadge(submission.status)}
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleDownloadSubmission(submission)}
+                          >
                             Download
                           </Button>
                           {submission.status === 'submitted' && (
-                            <Button size="sm">
+                            <Button 
+                              size="sm"
+                              onClick={() => handleGradeSubmission(submission)}
+                            >
                               Grade
                             </Button>
                           )}

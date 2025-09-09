@@ -35,6 +35,89 @@ export default function AssignmentDetailPage() {
       // Mock assignment data based on ID
       const getMockAssignment = (id: string): Assignment => {
         const assignments = {
+          // Student demo assignments
+          'demo1': {
+            id: 'demo1',
+            title: 'Math Assignment 1',
+            description: 'Solve problems 1–10 from Chapter 3',
+            classId: 'math101',
+            dueDate: '2025-09-10T23:59:59.000Z',
+            questions: [
+              { id: 'q1', text: 'Solve the quadratic equation: x² + 5x + 6 = 0', maxMarks: 10 },
+              { id: 'q2', text: 'Find the derivative of f(x) = 3x³ - 2x² + 5x - 1', maxMarks: 15 },
+              { id: 'q3', text: 'Calculate the area under the curve y = x² from x = 0 to x = 3', maxMarks: 20 }
+            ],
+            totalQuestions: 3,
+            createdBy: 'demo_teacher',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z'
+          },
+          'demo2': {
+            id: 'demo2',
+            title: 'Physics Lab Report',
+            description: 'Experiment on Newton\'s Laws',
+            classId: 'physics101',
+            dueDate: '2025-09-12T23:59:59.000Z',
+            questions: [
+              { id: 'q1', text: 'Explain Newton\'s First Law with examples from your experiment', maxMarks: 15 },
+              { id: 'q2', text: 'Calculate the acceleration of the object in your experiment', maxMarks: 20 },
+              { id: 'q3', text: 'Discuss sources of error in your measurements', maxMarks: 10 }
+            ],
+            totalQuestions: 3,
+            createdBy: 'demo_teacher',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z'
+          },
+          'demo3': {
+            id: 'demo3',
+            title: 'Computer Science Project',
+            description: 'Build a simple calculator in Python',
+            classId: 'cs101',
+            dueDate: '2025-09-15T23:59:59.000Z',
+            questions: [
+              { id: 'q1', text: 'Implement basic arithmetic operations (+, -, *, /)', maxMarks: 25 },
+              { id: 'q2', text: 'Add error handling for division by zero', maxMarks: 15 },
+              { id: 'q3', text: 'Create a user-friendly interface with input validation', maxMarks: 20 }
+            ],
+            totalQuestions: 3,
+            createdBy: 'demo_teacher',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z'
+          },
+          // Teacher demo assignments
+          'demo_teacher_1': {
+            id: 'demo_teacher_1',
+            title: 'Advanced Calculus Problem Set',
+            description: 'Solve the following calculus problems involving derivatives and integrals',
+            classId: 'math201',
+            dueDate: '2025-09-15T23:59:59.000Z',
+            questions: [
+              { id: 'q1', text: 'Find the derivative of f(x) = x³ + 2x² - 5x + 1', maxMarks: 15 },
+              { id: 'q2', text: 'Calculate the definite integral from 0 to 2 of (3x² + 2x) dx', maxMarks: 20 },
+              { id: 'q3', text: 'Solve the differential equation dy/dx = 2xy', maxMarks: 25 }
+            ],
+            totalQuestions: 3,
+            createdBy: 'demo_teacher',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z'
+          },
+          'demo_teacher_2': {
+            id: 'demo_teacher_2',
+            title: 'Physics Lab Report - Electromagnetic Fields',
+            description: 'Analyze the electromagnetic field patterns and write a comprehensive lab report',
+            classId: 'physics301',
+            dueDate: '2025-09-20T23:59:59.000Z',
+            questions: [
+              { id: 'q1', text: 'Calculate the electric field strength at point P', maxMarks: 20 },
+              { id: 'q2', text: 'Analyze the magnetic field lines and their properties', maxMarks: 25 },
+              { id: 'q3', text: 'Discuss the relationship between electric and magnetic fields', maxMarks: 30 }
+            ],
+            totalQuestions: 3,
+            createdBy: 'demo_teacher',
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z'
+          },
+          // Legacy assignments for backward compatibility
           '1': {
             id: '1',
             title: 'Math Problem Set 1',
@@ -222,6 +305,7 @@ export default function AssignmentDetailPage() {
 
   const submissionStatus = getSubmissionStatus();
   const overdue = isOverdue();
+  const isDemoAssignment = assignment && (assignment.id.startsWith('demo') || assignment.createdBy === 'demo_teacher');
 
   return (
     <ProtectedRoute>
@@ -238,13 +322,25 @@ export default function AssignmentDetailPage() {
           {/* Assignment Header */}
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-2">{assignment.title}</h1>
+              <div className="flex items-center space-x-3 mb-2">
+                <h1 className="text-3xl font-bold">{assignment.title}</h1>
+                {isDemoAssignment && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    Demo Assignment
+                  </Badge>
+                )}
+              </div>
               <div className="flex items-center space-x-4 mb-4">
                 {getStatusBadge(submissionStatus)}
                 {overdue && submissionStatus !== 'submitted' && submissionStatus !== 'graded' && (
                   <Badge variant="destructive">Overdue</Badge>
                 )}
               </div>
+              {isDemoAssignment && (
+                <p className="text-sm text-muted-foreground mb-4">
+                  This is a demo assignment for UI showcasing purposes.
+                </p>
+              )}
             </div>
           </div>
 
@@ -328,7 +424,14 @@ export default function AssignmentDetailPage() {
                 <CardTitle>Submit Your Work</CardTitle>
               </CardHeader>
               <CardContent>
-                {user && (
+                {isDemoAssignment ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-2">Submission not available for demo assignments</p>
+                    <p className="text-sm text-muted-foreground">
+                      This is a demo assignment for UI showcasing. Real assignments will allow file submissions.
+                    </p>
+                  </div>
+                ) : user && (
                   <SubmissionUploader
                     assignmentId={assignmentId}
                     studentId={user.uid}
