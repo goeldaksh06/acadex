@@ -2,19 +2,56 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Home } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Home, Settings } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface NavigationProps {
   currentPath: string;
 }
 
 const navItems = [
-  { path: '/dashboard', icon: Home, label: 'Dashboard' }
+  { path: '/dashboard', icon: Home, label: 'Home' },
+  { path: '/settings', icon: Settings, label: 'Settings' }
 ];
 
 export default function Navigation({ currentPath }: NavigationProps) {
   const currentPagePath = usePathname();
+  const router = useRouter();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleNavigation = async (path: string, label: string) => {
+    try {
+      if (path === '/dashboard') {
+        // Smart home navigation based on user role
+        if (user) {
+          // For now, default to student dashboard - you can add role-based logic here later
+          const dashboardPath = currentPagePath.includes('/teacher') ? '/dashboard/teacher' : '/dashboard/student';
+          router.push(dashboardPath);
+        } else {
+          router.push('/dashboard');
+        }
+      } else if (path === '/settings') {
+        // For now, show a coming soon message - you can create the settings page later
+        toast({
+          title: "Settings",
+          description: "Settings page coming soon! You can customize your preferences here.",
+          duration: 3000
+        });
+      } else {
+        router.push(path);
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+      toast({
+        title: "Navigation Error",
+        description: `Failed to navigate to ${label}. Please try again.`,
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <motion.nav
@@ -24,15 +61,16 @@ export default function Navigation({ currentPath }: NavigationProps) {
       className="fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-sm border-t border-border"
     >
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-center h-16">
+        <div className="flex items-center justify-center h-16 gap-8">
           {navItems.map((item) => {
-            const isActive = currentPagePath === item.path;
+            const isActive = (item.path === '/dashboard' && (currentPagePath.includes('/dashboard'))) || 
+                            currentPagePath === item.path;
             const Icon = item.icon;
 
             return (
-              <Link
+              <button
                 key={item.path}
-                href={item.path}
+                onClick={() => handleNavigation(item.path, item.label)}
                 className={`
                   flex flex-col items-center justify-center space-y-2 p-4 rounded-xl transition-all duration-200 relative
                   ${isActive 
@@ -63,7 +101,7 @@ export default function Navigation({ currentPath }: NavigationProps) {
                 </motion.div>
                 
                 <span className="text-sm font-medium">{item.label}</span>
-              </Link>
+              </button>
             );
           })}
         </div>

@@ -162,11 +162,38 @@ export default function TeacherDashboard() {
   };
 
   const handleViewAssignmentDetails = async (assignmentId: string) => {
+    console.log('Teacher View Assignment:', assignmentId);
     setActionLoading(`view-${assignmentId}`);
+    
     try {
-      router.push(`/assignments/${assignmentId}`);
+      // Show loading feedback
+      toast({
+        title: "Opening assignment details...",
+        description: `Loading ${assignmentId}`,
+        duration: 1500
+      });
+      
+      // Add a small delay to show the loading state
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Try router navigation first
+      try {
+        await router.push(`/assignments/${assignmentId}`);
+      } catch (routerError) {
+        console.warn('Router navigation failed, trying window.location:', routerError);
+        // Fallback to window.location
+        window.location.href = `/assignments/${assignmentId}`;
+      }
+      
+    } catch (error) {
+      console.error('Error navigating to assignment:', error);
+      toast({
+        title: "Navigation Error",
+        description: "Failed to open assignment details. Please try again.",
+        variant: "destructive"
+      });
     } finally {
-      setTimeout(() => setActionLoading(null), 500);
+      setTimeout(() => setActionLoading(null), 800);
     }
   };
 
@@ -283,8 +310,8 @@ export default function TeacherDashboard() {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -293,73 +320,70 @@ export default function TeacherDashboard() {
                       {isShowingDemoData && <span className="text-xs text-blue-500"> (Demo)</span>}
                     </p>
                     <p className="text-3xl font-bold text-blue-900">{assignments.length}</p>
+                    <p className="text-xs text-blue-600 mt-1">Active courses</p>
                   </div>
-                  <FileText className="h-8 w-8 text-blue-600" />
-                </div>
-                <div className="mt-2">
-                  <div className="flex items-center text-xs text-blue-600">
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    <span>Active courses</span>
+                  <div className="bg-blue-500 p-3 rounded-full">
+                    <FileText className="h-6 w-6 text-white" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-purple-700">Total Submissions</p>
+                    <p className="text-sm font-medium text-purple-700">
+                      Total Submissions
+                      {isShowingDemoData && <span className="text-xs text-purple-500"> (Demo)</span>}
+                    </p>
                     <p className="text-3xl font-bold text-purple-900">{submissions.length}</p>
+                    <p className="text-xs text-purple-600 mt-1">From students</p>
                   </div>
-                  <Users className="h-8 w-8 text-purple-600" />
-                </div>
-                <div className="mt-2">
-                  <div className="flex items-center text-xs text-purple-600">
-                    <span>From students</span>
+                  <div className="bg-purple-500 p-3 rounded-full">
+                    <Users className="h-6 w-6 text-white" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-green-700">Graded</p>
+                    <p className="text-sm font-medium text-green-700">
+                      Graded
+                      {isShowingDemoData && <span className="text-xs text-green-500"> (Demo)</span>}
+                    </p>
                     <p className="text-3xl font-bold text-green-900">
                       {submissions.filter(sub => sub.status === 'graded').length}
                     </p>
+                    <p className="text-xs text-green-600 mt-1">{submissions.length > 0 ? Math.round((submissions.filter(sub => sub.status === 'graded').length / submissions.length) * 100) : 0}% completed</p>
                   </div>
-                  <CheckCircle className="h-8 w-8 text-green-600" />
-                </div>
-                <div className="mt-2">
-                  <div className="flex items-center text-xs text-green-600">
-                    <span>{submissions.length > 0 ? Math.round((submissions.filter(sub => sub.status === 'graded').length / submissions.length) * 100) : 0}% completed</span>
+                  <div className="bg-green-500 p-3 rounded-full">
+                    <CheckCircle className="h-6 w-6 text-white" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-orange-700">Pending Review</p>
+                    <p className="text-sm font-medium text-orange-700">
+                      Pending Review
+                      {isShowingDemoData && <span className="text-xs text-orange-500"> (Demo)</span>}
+                    </p>
                     <p className="text-3xl font-bold text-orange-900">
                       {submissions.filter(sub => sub.status === 'submitted').length}
                     </p>
+                    <p className="text-xs text-orange-600 mt-1">
+                      {submissions.filter(sub => sub.status === 'submitted').length > 0 ? 'Needs attention' : 'All caught up!'}
+                    </p>
                   </div>
-                  <Clock className="h-8 w-8 text-orange-600" />
-                </div>
-                <div className="mt-2">
-                  <div className="flex items-center text-xs text-orange-600">
-                    {submissions.filter(sub => sub.status === 'submitted').length > 0 && (
-                      <>
-                        <AlertCircle className="h-3 w-3 mr-1" />
-                        <span>Needs attention</span>
-                      </>
-                    )}
+                  <div className="bg-orange-500 p-3 rounded-full">
+                    <Clock className="h-6 w-6 text-white" />
                   </div>
                 </div>
               </CardContent>
@@ -545,42 +569,66 @@ export default function TeacherDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {submissions.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">No submissions yet</p>
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gradient-to-r from-purple-100 to-pink-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                      <FileText className="h-8 w-8 text-purple-600" />
+                    </div>
+                    <p className="text-gray-600 font-medium">No submissions yet</p>
+                    <p className="text-sm text-gray-500 mt-1">Student submissions will appear here</p>
+                  </div>
                 ) : (
                   submissions.map((submission) => {
                     const assignment = assignments.find(a => a.id === submission.assignmentId);
                     return (
-                      <div key={submission.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <h3 className="font-semibold">{assignment?.title || 'Unknown Assignment'}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Student ID: {submission.studentId} • Submitted: {new Date(submission.submittedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {getStatusBadge(submission.status)}
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleViewAssignmentDetails(submission.assignmentId)}
-                          >
-                            View
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleDownloadSubmission(submission)}
-                          >
-                            Download
-                          </Button>
-                          {submission.status === 'submitted' && (
+                      <div key={submission.id} className="group p-4 border rounded-xl hover:shadow-lg transition-all duration-200 bg-gradient-to-r from-white to-purple-50/30 border-purple-100">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 flex items-center space-x-3">
+                            <AssignmentTypeIcon type={assignment?.title || ''} className="w-10 h-10 flex-shrink-0" />
+                            <div>
+                              <h3 className="font-bold text-gray-900">{assignment?.title || 'Unknown Assignment'}</h3>
+                              <p className="text-sm text-gray-600">
+                                Student ID: {submission.studentId} • Submitted: {new Date(submission.submittedAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            {getStatusBadge(submission.status)}
                             <Button 
+                              variant="outline" 
                               size="sm"
-                              onClick={() => handleGradeSubmission(submission)}
+                              onClick={() => handleViewAssignmentDetails(submission.assignmentId)}
+                              disabled={actionLoading === `view-submission-${submission.id}`}
+                              className="bg-white hover:bg-purple-50 border-purple-200 text-purple-700 hover:text-purple-800 font-medium px-4 py-2 rounded-lg transition-all duration-200 hover:shadow-md"
                             >
-                              Grade
+                              {actionLoading === `view-submission-${submission.id}` ? (
+                                <LoadingSpinner className="h-4 w-4" />
+                              ) : (
+                                <>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View
+                                </>
+                              )}
                             </Button>
-                          )}
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDownloadSubmission(submission)}
+                              className="bg-white hover:bg-green-50 border-green-200 text-green-700 hover:text-green-800 font-medium px-3 py-2 rounded-lg transition-all duration-200 hover:shadow-md"
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Download
+                            </Button>
+                            {submission.status === 'submitted' && (
+                              <Button 
+                                size="sm"
+                                onClick={() => handleGradeSubmission(submission)}
+                                className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:shadow-md"
+                              >
+                                <GraduationCap className="h-4 w-4 mr-2" />
+                                Grade
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );

@@ -216,54 +216,38 @@ export default function StudentDashboard() {
   };
 
   const handleViewDetails = async (assignmentId: string) => {
-    console.log('🚀 === handleViewDetails called ===');
-    console.log('🚀 Assignment ID:', assignmentId);
-    console.log('🚀 Router available:', !!router);
-    console.log('🚀 Current path:', window.location.pathname);
-    
+    console.log('Student View Assignment:', assignmentId);
     setActionLoading(`view-${assignmentId}`);
-    console.log('🚀 Loading state set to:', `view-${assignmentId}`);
     
     try {
-      // Show immediate loading feedback
+      // Show loading feedback
       toast({
         title: "Opening assignment details...",
         description: `Loading ${assignmentId}`,
-        duration: 2000
+        duration: 1500
       });
       
       // Add a small delay to show the loading state
-      console.log('🚀 Waiting for delay...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      console.log('🚀 Delay complete, navigating...');
-      
-      const targetUrl = `/assignments/${assignmentId}`;
-      console.log('🚀 Target URL:', targetUrl);
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       // Try router navigation first
       try {
-        console.log('🚀 Attempting router.push...');
-        await router.push(targetUrl);
-        console.log('🚀 Router navigation successful');
+        await router.push(`/assignments/${assignmentId}`);
       } catch (routerError) {
-        console.warn('⚠️ Router navigation failed:', routerError);
-        console.log('🚀 Falling back to window.location.href...');
-        window.location.href = targetUrl;
+        console.warn('Router navigation failed, trying window.location:', routerError);
+        // Fallback to window.location
+        window.location.href = `/assignments/${assignmentId}`;
       }
       
     } catch (error) {
-      console.error('❌ Error in handleViewDetails:', error);
+      console.error('Error navigating to assignment:', error);
       toast({
         title: "Navigation Error",
-        description: `Failed to open assignment ${assignmentId}. Please try again.`,
+        description: "Failed to open assignment details. Please try again.",
         variant: "destructive"
       });
     } finally {
-      console.log('🚀 Clearing loading state in 1 second...');
-      setTimeout(() => {
-        setActionLoading(null);
-        console.log('🚀 Loading state cleared');
-      }, 1000);
+      setTimeout(() => setActionLoading(null), 800);
     }
   };
 
@@ -448,35 +432,6 @@ export default function StudentDashboard() {
             </Card>
           </div>
 
-          {/* Debug Navigation Test - Remove in production */}
-          <Card className="bg-red-50 border-red-200">
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-red-700">Debug Mode:</span>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => {
-                    console.log('🧪 Testing direct navigation...');
-                    router.push('/assignments/demo1');
-                  }}
-                >
-                  Test Direct Navigation
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => {
-                    console.log('🧪 Testing window.location...');
-                    window.location.href = '/assignments/demo1';
-                  }}
-                >
-                  Test Window Location
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Search and Filter */}
           <Card className="bg-white/70 backdrop-blur-sm border-white/20 shadow-xl">
             <CardContent className="pt-6">
@@ -623,21 +578,9 @@ export default function StudentDashboard() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={(e) => {
+onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              console.log('🔵 Button clicked!');
-                              console.log('🔵 Assignment ID:', assignment.id);
-                              console.log('🔵 Assignment Title:', assignment.title);
-                              console.log('🔵 Is Demo:', assignment.id.startsWith('demo'));
-                              console.log('🔵 Current loading state:', actionLoading);
-                              
-                              // Add visual feedback
-                              e.target.style.backgroundColor = '#e5e7eb';
-                              setTimeout(() => {
-                                if (e.target) e.target.style.backgroundColor = '';
-                              }, 200);
-                              
                               handleViewDetails(assignment.id);
                             }}
                             disabled={actionLoading === `view-${assignment.id}`}
