@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Header from '@/components/common/Header';
 import Navigation from '@/components/common/Navigation';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import AssignmentCard from '@/components/assignment/AssignmentCard';
 import SubmissionUploader from '@/components/assignment/SubmissionUploader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,26 +28,27 @@ export default function AssignmentDetailPage() {
 
   // Load assignment and submission data
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
     const loadData = async () => {
       setLoading(true);
       
       try {
-        // First try to load real assignment data
-        const realAssignment = await getAssignment(assignmentId);
+        let realAssignment = null;
+        
+        // Try to load real assignment data only if user is authenticated
+        if (user) {
+          realAssignment = await getAssignment(assignmentId);
+        }
         
         if (realAssignment) {
           setAssignment(realAssignment);
           
-          // Load submission data if assignment exists
-          const existingSubmission = await getSubmission(assignmentId, user.uid);
-          setSubmission(existingSubmission);
+          // Load submission data if assignment exists and user is authenticated
+          if (user) {
+            const existingSubmission = await getSubmission(assignmentId, user.uid);
+            setSubmission(existingSubmission);
+          }
         } else {
-          // Fallback to demo data for demo assignments
+          // Fallback to demo data for demo assignments (works without authentication)
           const demoAssignments: Record<string, Assignment> = {
             'demo1': {
               id: 'demo1',
@@ -93,6 +92,38 @@ export default function AssignmentDetailPage() {
                 { id: 'q1', text: 'Implement basic arithmetic operations (+, -, *, /)', maxMarks: 25 },
                 { id: 'q2', text: 'Add error handling for division by zero', maxMarks: 15 },
                 { id: 'q3', text: 'Create a user-friendly interface with input validation', maxMarks: 20 }
+              ],
+              totalQuestions: 3,
+              createdBy: 'demo_teacher',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z'
+            },
+            'demo_teacher_1': {
+              id: 'demo_teacher_1',
+              title: 'Advanced Calculus Problem Set',
+              description: 'Solve the following calculus problems involving derivatives and integrals',
+              classId: 'math201',
+              dueDate: '2025-09-15T23:59:59.000Z',
+              questions: [
+                { id: 'q1', text: 'Find the derivative of f(x) = x³ + 2x² - 5x + 1', maxMarks: 15 },
+                { id: 'q2', text: 'Calculate the definite integral from 0 to 2 of (3x² + 2x) dx', maxMarks: 20 },
+                { id: 'q3', text: 'Solve the differential equation dy/dx = 2xy', maxMarks: 25 }
+              ],
+              totalQuestions: 3,
+              createdBy: 'demo_teacher',
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z'
+            },
+            'demo_teacher_2': {
+              id: 'demo_teacher_2',
+              title: 'Physics Lab Report - Electromagnetic Fields',
+              description: 'Analyze the electromagnetic field patterns and write a comprehensive lab report',
+              classId: 'physics301',
+              dueDate: '2025-09-20T23:59:59.000Z',
+              questions: [
+                { id: 'q1', text: 'Calculate the electric field strength at point P', maxMarks: 20 },
+                { id: 'q2', text: 'Analyze the magnetic field lines and their properties', maxMarks: 25 },
+                { id: 'q3', text: 'Discuss the relationship between electric and magnetic fields', maxMarks: 30 }
               ],
               totalQuestions: 3,
               createdBy: 'demo_teacher',
@@ -212,34 +243,30 @@ export default function AssignmentDetailPage() {
 
   if (loading) {
     return (
-      <ProtectedRoute>
-        <div className="min-h-screen pb-20">
-          <Header title="Assignment Details" />
-          <div className="container mx-auto p-6">
-            <div className="text-center">Loading assignment...</div>
-          </div>
+      <div className="min-h-screen pb-20">
+        <Header title="Assignment Details" />
+        <div className="container mx-auto p-6">
+          <div className="text-center">Loading assignment...</div>
         </div>
-      </ProtectedRoute>
+      </div>
     );
   }
 
   if (!assignment) {
     return (
-      <ProtectedRoute>
-        <div className="min-h-screen pb-20">
-          <Header title="Assignment Not Found" />
-          <div className="container mx-auto p-6">
-            <div className="text-center">
-              <h1 className="text-2xl font-bold mb-4">Assignment Not Found</h1>
-              <p className="text-muted-foreground mb-4">The assignment you're looking for doesn't exist.</p>
-              <Button onClick={() => router.back()}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Go Back
-              </Button>
-            </div>
+      <div className="min-h-screen pb-20">
+        <Header title="Assignment Not Found" />
+        <div className="container mx-auto p-6">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Assignment Not Found</h1>
+            <p className="text-muted-foreground mb-4">The assignment you're looking for doesn't exist.</p>
+            <Button onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Go Back
+            </Button>
           </div>
         </div>
-      </ProtectedRoute>
+      </div>
     );
   }
 
@@ -248,13 +275,24 @@ export default function AssignmentDetailPage() {
   const isDemoAssignment = assignment && (assignment.id.startsWith('demo') || assignment.createdBy === 'demo_teacher');
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen pb-20">
-        <Header title="Assignment Details" />
+    <div className="min-h-screen pb-20">
+      <Header title="Assignment Details" />
 
-        <main className="container mx-auto p-6 space-y-6">
-          {/* Back Button */}
-          <Button variant="outline" onClick={() => router.push('/dashboard/student')}>
+      <main className="container mx-auto p-6 space-y-6">
+        {/* Back Button */}
+        <Button variant="outline" onClick={() => {
+          // Smart navigation back to appropriate dashboard
+          if (typeof window !== 'undefined') {
+            const referrer = document.referrer;
+            if (referrer && referrer.includes('/teacher')) {
+              router.push('/dashboard/teacher');
+            } else {
+              router.push('/dashboard/student');
+            }
+          } else {
+            router.push('/dashboard/student');
+          }
+        }}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
@@ -371,13 +409,23 @@ export default function AssignmentDetailPage() {
                       This is a demo assignment for UI showcasing. Real assignments will allow file submissions.
                     </p>
                   </div>
-                ) : user && (
+                ) : user ? (
                   <SubmissionUploader
                     assignmentId={assignmentId}
                     studentId={user.uid}
                     onUploadComplete={handleUploadComplete}
                     onUploadError={handleUploadError}
                   />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-4">Please sign in to submit your assignment</p>
+                    <Button 
+                      onClick={() => router.push('/auth')}
+                      className="bg-primary hover:bg-primary/90 text-white"
+                    >
+                      Sign In to Submit
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -427,6 +475,5 @@ export default function AssignmentDetailPage() {
 
         <Navigation currentPath="/assignments" />
       </div>
-    </ProtectedRoute>
   );
 }
